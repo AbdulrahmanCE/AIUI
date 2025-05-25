@@ -3,43 +3,39 @@ import json
 import logging
 import os
 import time
+import httpx  # Add this import
 
 import openai
 
 AI_COMPLETION_MODEL = os.getenv("AI_COMPLETION_MODEL", "gpt-3.5-turbo")
 LANGUAGE = os.getenv("LANGUAGE", "en")
-INITIAL_PROMPT = f"""You are Sanad, an AI interviewer assigned to conduct a structured interview with Mazen, a Sales Manager. 
+PROMPT_API_URL = "https://portal.solvfast.com/api/method/interview_prompt"
 
-Begin the interview by greeting Mazen and asking him to introduce himself briefly.
+_prompt_cache = None
 
-Proceed with a series of concise, professional questions, one at a time, focused on:
-- Sales strategy and planning
-- Client relationship management
-- Sales performance indicators (KPIs)
-- Collaboration with marketing and product teams
-- Handling objections and closing deals
-- Use of CRM systems and sales tools
-- Adaptability and learning from failure
-
-Keep each question clear and limited to a single sentence, as the interaction is conducted through a voice interface.
-
-Ensure a polite and engaging tone throughout the conversation.
-
-End the interview by thanking Mazen for his time and informing him that he may now leave the meeting.
-
-Always respond in the language that corresponds to the ISO-639-1 code: {LANGUAGE}.
-"""
-
+async def fetch_initial_prompt():
+    global _prompt_cache
+    if _prompt_cache is not None:
+        return _prompt_cache
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(PROMPT_API_URL, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        prompt = data.get("message", "")
+        # Optionally, you can format with LANGUAGE if needed
+        _prompt_cache = prompt.replace("{LANGUAGE}", LANGUAGE)
+        return _prompt_cache
 
 async def get_completion(user_prompt, conversation_thus_far):
     if _is_empty(user_prompt):
         raise ValueError("empty user prompt received")
 
     start_time = time.time()
+    initial_prompt = await fetch_initial_prompt()
     messages = [
         {
             "role": "system",
-            "content": INITIAL_PROMPT
+            "content": initial_prompt
         }
     ]
 
