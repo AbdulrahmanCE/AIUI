@@ -7,8 +7,8 @@ export const useMicVADWrapper = (onLoadingChange) => {
         {
             preSpeechPadFrames: 5,
             positiveSpeechThreshold: 0.90,
-            negativeSpeechThreshold: 0.5,
-            minSpeechFrames: 10,
+            negativeSpeechThreshold: 0.4,
+            minSpeechFrames: 15,
             startOnLoad: true,
             onSpeechStart,
             onSpeechEnd,
